@@ -65,7 +65,9 @@ function configureDefaults(options) {
   debug('options', config);
   config.mochaFile = getSetting(config.mochaFile, 'MOCHA_FILE', 'test-results.xml');
   config.attachments = getSetting(config.attachments, 'ATTACHMENTS', false);
+  config.attachmentFromTestContext = !!config.attachmentFromTestContext;
   config.antMode = getSetting(config.antMode, 'ANT_MODE', false);
+  config.gitlabMode = getSetting(config.gitlabMode, 'GITLAB_MODE', false);
   config.jenkinsMode = getSetting(config.jenkinsMode, 'JENKINS_MODE', false);
   config.properties = getSetting(config.properties, 'PROPERTIES', null, parsePropertiesFromEnv);
   config.toConsole = !!config.toConsole;
@@ -74,6 +76,10 @@ function configureDefaults(options) {
 
   if (config.antMode) {
     updateOptionsForAntMode(config);
+  }
+
+  if (config.gitlabMode) {
+    updateOptionsForGitlabMode(config);
   }
 
   if (config.jenkinsMode) {
@@ -90,6 +96,20 @@ function updateOptionsForAntMode(options) {
 
   if (!options.properties) {
     options.properties = {};
+  }
+}
+
+function updateOptionsForGitlabMode(options) {
+  if (options.skipRootSuiteXmlOutput === undefined) {
+    options.skipRootSuiteXmlOutput = true;
+  }
+
+  if (options.testSuiteOutputFilename === undefined) {
+    options.testSuiteOutputFilename = true;
+  }
+
+  if (options.useSuiteNameAsClassName === undefined) {
+    options.useSuiteNameAsClassName = true;
   }
 }
 
@@ -242,6 +262,8 @@ function MochaJUnitReporter(runner, options) {
       if (testsuite) {
         var start = testsuite[0]._attr.timestamp;
         testsuite[0]._attr.time = this._Date.now() - start;
+
+        this.updateTestcasesFromSuiteRun(suite, testsuite);
       }
     }
   };
@@ -383,6 +405,35 @@ MochaJUnitReporter.prototype.getTestcaseData = function(test, err) {
 };
 
 /**
+ * Updates the testcases in testsuite with results from the executed suite.
+ * This is necessary because test.context coming from Cypress is only available in "runner.on('suite end')",
+ * and not "runner.on('fail')".
+ * @param {Mocha.Suite} suite The suite after execution by the runner.
+ * @param {object} testsuite The testsuite already processed by mocha.
+ */
+MochaJUnitReporter.prototype.updateTestcasesFromSuiteRun = function(suite, testsuite) {
+  if (this._options.attachmentFromTestContext){
+    if (suite.suites.length > 0) {
+      for (var i = 0; i < suite.suites[0].tests.length; ++i) {
+        var test = suite.suites[0].tests[i];
+
+        var systemOutLines = [];
+        if (test.context && typeof test.context === 'string') {
+          // testsuite array contains a special first item for _attr, so access 'i+1'
+          var sysout = testsuite[i + 1].testcase.find(function(e) { return e['system-out'] !== undefined; });
+          if (sysout) {
+            systemOutLines = sysout['system-out'].split('\n');
+          }
+
+          systemOutLines = systemOutLines.concat('[[ATTACHMENT|' + test.context + ']]');
+          testsuite[i + 1].testcase.push({'system-out': this.removeInvalidCharacters(stripAnsi(systemOutLines.join('\n')))});
+        }
+      }
+    }
+  }
+};
+
+/**
  * @param {string} input
  * @returns {string} without invalid characters
  */
@@ -417,8 +468,16 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
   var totalTests = 0;
   var stats = this._runner.stats;
   var antMode = this._options.antMode;
+  var skipRootSuiteXmlOutput = this._options.skipRootSuiteXmlOutput;
+  var testSuiteOutputFilename = this._options.testSuiteOutputFilename;
+  var useSuiteNameAsClassName = this._options.useSuiteNameAsClassName;
   var hasProperties = (!!this._options.properties) || antMode;
   var Date = this._Date;
+  var rootSuite = testsuites[0];
+
+  if (skipRootSuiteXmlOutput){
+    testsuites = testsuites.slice(1);
+  }
 
   testsuites.forEach(function(suite) {
     var _suiteAttr = suite.testsuite[0]._attr;
@@ -442,6 +501,12 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
       _suiteAttr.skipped += Number('skipped' in lastNode);
       _suiteAttr.failures += Number('failure' in lastNode);
       testcase.testcase[0]._attr.time = testcase.testcase[0]._attr.time.toFixed(3);
+      if (useSuiteNameAsClassName) {
+        testcase.testcase[0]._attr.classname = _suiteAttr.name;
+      }
+      if (testSuiteOutputFilename && rootSuite.testsuite[0]._attr.file && _suiteAttr.file === undefined) {
+        _suiteAttr.file = rootSuite.testsuite[0]._attr.file;
+      }
     });
 
     if (antMode) {
@@ -467,7 +532,7 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
 
 
   if (!antMode) {
-    var rootSuite = {
+    var testSuitesRoot = {
       _attr: {
         name: this._options.testsuitesTitle,
         time: (stats.duration / 1000 || 0).toFixed(3),
@@ -476,9 +541,9 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
       }
     };
     if (stats.pending) {
-      rootSuite._attr.skipped = stats.pending;
+      testSuitesRoot._attr.skipped = stats.pending;
     }
-    testsuites = [ rootSuite ].concat(testsuites);
+    testsuites = [ testSuitesRoot ].concat(testsuites);
   }
 
   return xml({ testsuites: testsuites }, { declaration: true, indent: '  ' });

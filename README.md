@@ -1,8 +1,8 @@
 # JUnit Reporter for Mocha
-
+<!---
 [![Build Status][travis-badge]][travis-build]
 [![npm][npm-badge]][npm-listing]
-
+-->
 Produces JUnit-style XML test results.
 
 ## Installation
@@ -177,24 +177,84 @@ output line 2
 [[ATTACHMENT|path/to/file]]</system-out>
 ```
 
+### Attachment from Test Context with Cypress
+Enabling the `attachmentFromTestContext` configuration option will allow for attaching files and screenshots in [JUnit Attachments Plugin](https://wiki.jenkins.io/display/JENKINS/JUnit+Attachments+Plugin) format.
+
+Three different settings need to be configured suitably so that the paths match.
+
+1. Add the following code to your Cypress `support/index.js`
+```js
+import addContext from "mochawesome/addContext";
+Cypress.on("test:after:run", (test, runnable) => {
+  if (test.state === "failed") {
+    const screenshot =`assets/${Cypress.spec.name}/${runnable.parent.title} -- ${test.title} (failed).png`;
+    addContext({ test }, screenshot);
+  }
+});
+```
+
+2. In `cypress.json`
+
+```json
+{
+  "screenshotOnRunFailure": true,
+  "screenshotsFolder": "cypress/results/html-report/assets",
+  "reporter": "mocha-multi-reporters",
+  "reporterOptions": {
+    "reporterEnabled": "spec, mochawesome, mocha-junit-reporter",
+    "mochaJunitReporterReporterOptions": {
+      "mochaFile": "cypress/results/junit/output-[hash].xml",
+      "attachmentFromTestContext": true
+    },
+    "mochawesomeReporterOptions": {
+      "reportDir": "cypress/results/mochawesome",
+      "overwrite": false,
+      "html": false,
+      "json": true
+    }
+  }
+}
+```
+
+3. In package.json in the scripts tag, add the following scripts. Those are just examples and should be adapted to your needs.
+
+```json
+{
+  "headless:firefox": "./node_modules/.bin/cypress run --headless --config video=false --browser firefox",
+  "mochawesome:merge": "./node_modules/.bin/mochawesome-merge cypress/results/mochawesome/*.json > cypress/results/mochawesome-merged.json",
+  "html-report": "./node_modules/.bin/marge cypress/results/mochawesome-merged.json -f test-results.html -o cypress/results/html-report --charts=true --showPassed=false",
+  "headless-test:firefox": "npm run headless:firefox || npm run mochawesome:merge && npm run html-report"
+}
+
+```
+
+Then execute `npm run headless-test:firefox`. That will run the tests, merge all test results into one file,
+and create the output test-results.html with included attachments. `marge` creates an `assets` folder in the same directory
+as test-results.html, so the screenshotsFolder needs to match it.
+
 ### Full configuration options
 
-| Parameter                      | Default                | Effect                                                                                                                  |
-| ------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| mochaFile                      | `test-results.xml`     | configures the file to write reports to                                                                                 |
-| includePending                 | `false`                | if set to a truthy value pending tests will be included in the report                                                   |
-| properties                     | `null`                 | a hash of additional properties to add to each test suite                                                               |
-| toConsole                      | `false`                | if set to a truthy value the produced XML will be logged to the console                                                 |
-| useFullSuiteTitle              | `false`                | if set to a truthy value nested suites' titles will show the suite lineage                                              |
-| suiteTitleSeparatedBy          | ` ` (space)            | the character to use to separate nested suite titles. (defaults to ' ', '.' if in jenkins mode)                         |
-| testCaseSwitchClassnameAndName | `false`                | set to a truthy value to switch name and classname values                                                               |
-| rootSuiteTitle                 | `Root Suite`           | the name for the root suite. (defaults to 'Root Suite')                                                                 |
-| testsuitesTitle                | `Mocha Tests`          | the name for the `testsuites` tag (defaults to 'Mocha Tests')                                                           |
-| outputs                        | `false`                | if set to truthy value will include console output and console error output                                             |
-| attachments                    | `false`                | if set to truthy value will attach files to report in `JUnit Attachments Plugin` format (after console outputs, if any) |
-| antMode                        | `false`                | set to truthy value to return xml compatible with [Ant JUnit schema][ant-schema]                                        |
-| antHostname                    | `process.env.HOSTNAME` | hostname to use when running in `antMode`  will default to environment `HOSTNAME`                                       |
-| jenkinsMode                    | `false`                | if set to truthy value will return xml that will display nice results in Jenkins                                        |
+| Parameter                      | Default                | Effect                                                                                                                        |
+|--------------------------------| ---------------------- |-------------------------------------------------------------------------------------------------------------------------------|
+| mochaFile                      | `test-results.xml`     | configures the file to write reports to                                                                                       |
+| includePending                 | `false`                | if set to a truthy value pending tests will be included in the report                                                         |
+| properties                     | `null`                 | a hash of additional properties to add to each test suite                                                                     |
+| toConsole                      | `false`                | if set to a truthy value the produced XML will be logged to the console                                                       |
+| useFullSuiteTitle              | `false`                | if set to a truthy value nested suites' titles will show the suite lineage                                                    |
+| suiteTitleSeparatedBy          | ` ` (space)            | the character to use to separate nested suite titles. (defaults to ' ', '.' if in jenkins mode)                               |
+| testCaseSwitchClassnameAndName | `false`                | set to a truthy value to switch name and classname values                                                                     |
+| rootSuiteTitle                 | `Root Suite`           | the name for the root suite. (defaults to 'Root Suite')                                                                       |
+| testsuitesTitle                | `Mocha Tests`          | the name for the `testsuites` tag (defaults to 'Mocha Tests')                                                                 |
+| skipRootSuiteXmlOutput         | `false`                | if set to a truthy value the rootSuite `testsuites` tag is not written to the xml output, as is empty anyway                  |
+| testSuiteOutputFilename        | `false`                | if set to a truthy value will `file` is set on each `testsuite` tag equal to the rootSuite file                               |
+| useSuiteNameAsClassName        | `false`                | if set to a truthy value will use the suite name as classname. Useful for gitlab                                              |
+| outputs                        | `false`                | if set to truthy value will include console output and console error output                                                   |
+| attachments                    | `false`                | if set to truthy value will attach files to report in `JUnit Attachments Plugin` format (after console outputs, if any)       |
+| attachmentFromTestContext      | `false`                | if set to truthy value will attach files from `mochawesome/addContext` to report in `JUnit Attachments Plugin` format (after console outputs, if any) |
+| antMode                        | `false`                | set to truthy value to return xml compatible with [Ant JUnit schema][ant-schema]                                              |
+| antHostname                    | `process.env.HOSTNAME` | hostname to use when running in `antMode`  will default to environment `HOSTNAME`                                             |
+| gitlabMode                     | `false`                | if set to truthy value will return xml that will display nice results in Gitlab                                               |
+| jenkinsMode                    | `false`                | if set to truthy value will return xml that will display nice results in Jenkins                                              |
 
 [travis-badge]: https://travis-ci.org/michaelleeallen/mocha-junit-reporter.svg?branch=master
 [travis-build]: https://travis-ci.org/michaelleeallen/mocha-junit-reporter

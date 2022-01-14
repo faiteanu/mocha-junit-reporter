@@ -552,6 +552,29 @@ describe('mocha-junit-reporter', function() {
     });
   });
 
+  describe('when "attachmentFromTestContext" option is specified', function() {
+    it('adds attachments from testcase context to xml report', function(done) {
+      var filePath = '/path/to/file';
+      var reporter = createReporter({attachmentFromTestContext: true});
+      var test = createTest('has attachment');
+      test.context = filePath;
+
+      var suite = Suite.create(reporter.runner.suite, 'with attachments');
+      suite.addTest(test);
+
+      runRunner(reporter.runner, function() {
+        expect(reporter._testsuites[1].testsuite[0]._attr.name).to.equal(suite.title);
+        expect(reporter._testsuites[1].testsuite[1].testcase).to.have.length(2);
+        expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.name).to.equal(test.fullTitle());
+        expect(reporter._testsuites[1].testsuite[1].testcase[1]).to.have.property('system-out', '[[ATTACHMENT|' + filePath + ']]');
+
+        expect(reporter._xml).to.include('<system-out>[[ATTACHMENT|' + filePath + ']]</system-out>');
+
+        done();
+      });
+    });
+  });
+
   describe('Output', function() {
     it('skips suites with empty title', function(done) {
       var reporter = createReporter();
@@ -757,6 +780,63 @@ describe('mocha-junit-reporter', function() {
           expect(reporter._testsuites[2].testsuite[0]._attr.name).to.equal('Root Suite.Inner Suite.Another Suite');
           expect(reporter._testsuites[2].testsuite[1].testcase[0]._attr.name).to.equal('fail test');
           expect(reporter._testsuites[2].testsuite[1].testcase[0]._attr.classname).to.equal('Inner Suite.Another Suite');
+
+          done();
+        });
+      });
+    });
+
+    describe('Gitlab format', function () {
+      it('generates Gitlab compatible suite with file name and testcase classname', function(done) {
+        var reporter = createReporter({gitlabMode: true, mochaFile: 'test/output/mocha.xml'});
+        var rootSuite = reporter.runner.suite;
+
+        rootSuite.file = 'testfile.js';
+
+        var suite1 = Suite.create(rootSuite, 'Inner Suite');
+        suite1.addTest(createTest('test'));
+
+        var suite2 = Suite.create(suite1, 'Another Suite');
+        var test = createTest('fail test', function(done) {
+          done(new Error('failed test'));
+        });
+        suite2.addTest(test);
+
+        runRunner(reporter.runner, function() {
+          expect(reporter._testsuites[1].testsuite[0]._attr.name).to.equal('Inner Suite');
+          expect(reporter._testsuites[1].testsuite[0]._attr.file).to.equal('testfile.js');
+          expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.classname).to.equal('Inner Suite');
+
+          expect(reporter._xml).to.not.include('Root Suite');
+
+          done();
+        });
+      });
+
+      it('generates Gitlab compatible suite with file name, testcase classname and attachmentFromTestContext', function(done) {
+        var reporter = createReporter({gitlabMode: true, attachmentFromTestContext: true, mochaFile: 'test/output/mocha.xml'});
+        var rootSuite = reporter.runner.suite;
+
+        rootSuite.file = 'testfile.js';
+
+        var suite1 = Suite.create(rootSuite, 'Inner Suite');
+        suite1.addTest(createTest('test'));
+
+        var suite2 = Suite.create(suite1, 'Another Suite');
+        var test = createTest('fail test', function(done) {
+          done(new Error('failed test'));
+        });
+
+        test.context = "image.png";
+        suite2.addTest(test);
+
+        runRunner(reporter.runner, function() {
+          expect(reporter._testsuites[1].testsuite[0]._attr.name).to.equal('Inner Suite');
+          expect(reporter._testsuites[1].testsuite[0]._attr.file).to.equal('testfile.js');
+          expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.classname).to.equal('Inner Suite');
+
+          expect(reporter._xml).to.not.include('Root Suite');
+          expect(reporter._xml).to.include('[[ATTACHMENT|image.png]]');
 
           done();
         });
