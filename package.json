@@ -1,6 +1,6 @@
 {
-  "name": "mocha-junit-reporter",
-  "version": "2.0.2",
+  "name": "@faiteanu/mocha-junit-reporter",
+  "version": "2.0.3",
   "description": "A JUnit reporter for mocha.",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/michaelleeallen/mocha-junit-reporter"
+    "url": "https://github.com/faiteanu/mocha-junit-reporter"
   },
   "keywords": [
     "mocha",
@@ -19,8 +19,8 @@
     "reporter"
   ],
   "author": {
-    "name": "Michael Allen",
-    "email": "michael.lee.allen@gmail.com"
+    "name": "Fabian Aiteanu",
+    "email": "aiteanu@hotmail.com"
   },
   "license": "MIT",
   "devDependencies": {
