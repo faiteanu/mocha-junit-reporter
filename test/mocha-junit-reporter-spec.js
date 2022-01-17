@@ -788,7 +788,7 @@ describe('mocha-junit-reporter', function() {
 
     describe('Gitlab format', function () {
       it('generates Gitlab compatible suite with file name and testcase classname', function(done) {
-        var reporter = createReporter({gitlabMode: true, mochaFile: 'test/output/mocha.xml'});
+        var reporter = createReporter({gitlabMode: true, testSuiteOutputFilenamePrefix: "path/", mochaFile: 'test/output/mocha.xml'});
         var rootSuite = reporter.runner.suite;
 
         rootSuite.file = 'testfile.js';
@@ -804,9 +804,9 @@ describe('mocha-junit-reporter', function() {
 
         runRunner(reporter.runner, function() {
           expect(reporter._testsuites[1].testsuite[0]._attr.name).to.equal('Inner Suite');
-          expect(reporter._testsuites[1].testsuite[0]._attr.file).to.equal('testfile.js');
+          expect(reporter._testsuites[1].testsuite[0]._attr.file).to.equal('path/testfile.js');
           expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.classname).to.equal('Inner Suite');
-          expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.file).to.equal('testfile.js');
+          expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.file).to.equal('path/testfile.js');
 
           expect(reporter._xml).to.not.include('Root Suite');
 

@@ -73,6 +73,7 @@ function configureDefaults(options) {
   config.toConsole = !!config.toConsole;
   config.rootSuiteTitle = config.rootSuiteTitle || 'Root Suite';
   config.testsuitesTitle = config.testsuitesTitle || 'Mocha Tests';
+  config.testSuiteOutputFilenamePrefix = config.testSuiteOutputFilenamePrefix || '';
 
   if (config.antMode) {
     updateOptionsForAntMode(config);
@@ -470,6 +471,7 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
   var antMode = this._options.antMode;
   var skipRootSuiteXmlOutput = this._options.skipRootSuiteXmlOutput;
   var testSuiteOutputFilename = this._options.testSuiteOutputFilename;
+  var testSuiteOutputFilenamePrefix = this._options.testSuiteOutputFilenamePrefix;
   var useSuiteNameAsClassName = this._options.useSuiteNameAsClassName;
   var hasProperties = (!!this._options.properties) || antMode;
   var Date = this._Date;
@@ -495,7 +497,7 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
     _suiteAttr.failures = 0;
     _suiteAttr.skipped = 0;
     if (testSuiteOutputFilename && rootSuite.testsuite[0]._attr.file && _suiteAttr.file === undefined) {
-      _suiteAttr.file = rootSuite.testsuite[0]._attr.file;
+      _suiteAttr.file = testSuiteOutputFilenamePrefix + rootSuite.testsuite[0]._attr.file;
     }
 
     _cases.forEach(function(testcase) {
@@ -508,7 +510,7 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
         testcase.testcase[0]._attr.classname = _suiteAttr.name;
       }
       if (testSuiteOutputFilename && rootSuite.testsuite[0]._attr.file) {
-        testcase.testcase[0]._attr.file = rootSuite.testsuite[0]._attr.file;
+        testcase.testcase[0]._attr.file = testSuiteOutputFilenamePrefix + rootSuite.testsuite[0]._attr.file;
       }
     });
 

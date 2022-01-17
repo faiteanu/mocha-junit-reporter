@@ -235,7 +235,7 @@ as test-results.html, so the screenshotsFolder needs to match it.
 ### Full configuration options
 
 | Parameter                      | Default                | Effect                                                                                                                        |
-|--------------------------------| ---------------------- |-------------------------------------------------------------------------------------------------------------------------------|
+|--------------------------------|------------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | mochaFile                      | `test-results.xml`     | configures the file to write reports to                                                                                       |
 | includePending                 | `false`                | if set to a truthy value pending tests will be included in the report                                                         |
 | properties                     | `null`                 | a hash of additional properties to add to each test suite                                                                     |
@@ -247,6 +247,7 @@ as test-results.html, so the screenshotsFolder needs to match it.
 | testsuitesTitle                | `Mocha Tests`          | the name for the `testsuites` tag (defaults to 'Mocha Tests')                                                                 |
 | skipRootSuiteXmlOutput         | `false`                | if set to a truthy value the rootSuite `testsuites` tag is not written to the xml output, as is empty anyway                  |
 | testSuiteOutputFilename        | `false`                | if set to a truthy value will `file` is set on each `testsuite` tag equal to the rootSuite file                               |
+| testSuiteOutputFilenamePrefix  | `` (empty)             | prefix to prepend to `file` attribute in output. Useful if testsuite is not in the git root folder.
 | useSuiteNameAsClassName        | `false`                | if set to a truthy value will use the suite name as classname. Useful for gitlab                                              |
 | outputs                        | `false`                | if set to truthy value will include console output and console error output                                                   |
 | attachments                    | `false`                | if set to truthy value will attach files to report in `JUnit Attachments Plugin` format (after console outputs, if any)       |
