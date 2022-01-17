@@ -494,6 +494,9 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
     _suiteAttr.timestamp = new Date(_suiteAttr.timestamp).toISOString().slice(0, -5);
     _suiteAttr.failures = 0;
     _suiteAttr.skipped = 0;
+    if (testSuiteOutputFilename && rootSuite.testsuite[0]._attr.file && _suiteAttr.file === undefined) {
+      _suiteAttr.file = rootSuite.testsuite[0]._attr.file;
+    }
 
     _cases.forEach(function(testcase) {
       var lastNode = testcase.testcase[testcase.testcase.length - 1];
@@ -504,8 +507,8 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
       if (useSuiteNameAsClassName) {
         testcase.testcase[0]._attr.classname = _suiteAttr.name;
       }
-      if (testSuiteOutputFilename && rootSuite.testsuite[0]._attr.file && _suiteAttr.file === undefined) {
-        _suiteAttr.file = rootSuite.testsuite[0]._attr.file;
+      if (testSuiteOutputFilename && rootSuite.testsuite[0]._attr.file) {
+        testcase.testcase[0]._attr.file = rootSuite.testsuite[0]._attr.file;
       }
     });
 

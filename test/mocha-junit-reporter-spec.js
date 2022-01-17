@@ -806,6 +806,7 @@ describe('mocha-junit-reporter', function() {
           expect(reporter._testsuites[1].testsuite[0]._attr.name).to.equal('Inner Suite');
           expect(reporter._testsuites[1].testsuite[0]._attr.file).to.equal('testfile.js');
           expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.classname).to.equal('Inner Suite');
+          expect(reporter._testsuites[1].testsuite[1].testcase[0]._attr.file).to.equal('testfile.js');
 
           expect(reporter._xml).to.not.include('Root Suite');
 
